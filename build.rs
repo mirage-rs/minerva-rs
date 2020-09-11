@@ -14,4 +14,16 @@ fn main() {
     cc.file("src/minerva_tc/mtc/mtc.c")
         .include("src/minerva_tc/mtc")
         .compile("minerva");
+
+    let bindings = bindgen::Builder::default()
+        .parse_callbacks(Box::new(bindgen::CargoCallbacks))
+        .header("src/minerva_tc/mtc/mtc.h")
+        .whitelist_type("mtc_config_t")
+        .generate()
+        .expect("failed to generate rust bindings");
+
+    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
+    bindings
+        .write_to_file(out_path.join("bindings.rs"))
+        .expect("Couldn't write bindings!");
 }

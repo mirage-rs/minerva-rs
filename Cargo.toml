@@ -9,3 +9,4 @@ license-file = "LICENSE"
 
 [build-dependencies]
 cc = "1.0.59"
+bindgen = "0.55.1"

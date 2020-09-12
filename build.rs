@@ -6,15 +6,15 @@ fn main() {
     let dst = PathBuf::from(env::var_os("OUT_DIR").unwrap());
     let build = dst.join("build");
 
+    // Compile and link minerva_tc into the Rust side.
     let mut cc = cc::Build::new();
     cc.warnings(false).extra_warnings(false).out_dir(&build);
-
     cc.static_flag(true).shared_flag(false).cargo_metadata(true);
-
     cc.file("src/minerva_tc/mtc/mtc.c")
         .include("src/minerva_tc/mtc")
         .compile("minerva");
 
+    // Generate FFI bindings to the minerva_tc C API.
     let bindings = bindgen::Builder::default()
         .use_core()
         .ctypes_prefix("cty")
@@ -30,6 +30,7 @@ fn main() {
         .generate()
         .expect("failed to generate rust bindings");
 
+    // Write the bindings to the output file.
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
     bindings
         .write_to_file(out_path.join("bindings.rs"))

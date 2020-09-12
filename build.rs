@@ -7,7 +7,7 @@ fn main() {
     let build = dst.join("build");
 
     let mut cc = cc::Build::new();
-    cc.warnings(false).out_dir(&build);
+    cc.warnings(false).extra_warnings(false).out_dir(&build);
 
     cc.static_flag(true).shared_flag(false).cargo_metadata(true);
 
@@ -16,9 +16,15 @@ fn main() {
         .compile("minerva");
 
     let bindings = bindgen::Builder::default()
+        .use_core()
+        .ctypes_prefix("cty")
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
         .header("src/minerva_tc/mtc/mtc.h")
+        .header("src/minerva_tc/mtc/mtc_mc_emc_regs.h")
         .whitelist_type("mtc_config_t")
+        .whitelist_function("minerva_main")
+        .whitelist_var("CLOCK_BASE")
+        .whitelist_var("CLK_RST_CONTROLLER_CLK_SOURCE_EMC")
         .generate()
         .expect("failed to generate rust bindings");
 

@@ -6,6 +6,30 @@ use core::{mem, ptr};
 pub const SDRAM0_TABLE: &[u8; 49280] = include_bytes!(
     "./minerva_tc/mtc_tables/nintendo_switch/sdram0_nx_abca2_0_3_10NoCfgVersion_V9.8.7_V1.6.bin"
 );
+pub const SDRAM1_TABLE: &[u8; 49280] = include_bytes!(
+    "./minerva_tc/mtc_tables/nintendo_switch/sdram1_nx_abca2_2_0_10NoCfgVersion_V9.8.7_V1.6.bin"
+);
+pub const SDRAM2_TABLE: &[u8; 49280] = include_bytes!(
+    "./minerva_tc/mtc_tables/nintendo_switch/sdram2_nx_abca2_0_3_10NoCfgVersion_V9.8.7_V1.6.bin"
+);
+pub const SDRAM3_TABLE: &[u8; 49280] = include_bytes!(
+    "./minerva_tc/mtc_tables/nintendo_switch/sdram3_nx_abca2_0_3_10NoCfgVersion_V9.8.7_V1.6.bin"
+);
+pub const SDRAM4_TABLE: &[u8; 49280] = include_bytes!(
+    "./minerva_tc/mtc_tables/nintendo_switch/sdram4_nx_abca2_1_0_10NoCfgVersion_V9.8.7_V1.6.bin"
+);
+
+/// Returns the corresponding sdram table for the given sdram id.
+pub fn table_for_sdram(sdram_id: u32) -> Option<&'static [u8; 49280]> {
+    match sdram_id {
+        0x00 => Some(SDRAM0_TABLE),
+        0x01 => Some(SDRAM1_TABLE),
+        0x02 => Some(SDRAM2_TABLE),
+        0x03 => Some(SDRAM3_TABLE),
+        0x04 => Some(SDRAM4_TABLE),
+        _ => None,
+    }
+}
 
 #[derive(Debug, Copy, Clone)]
 pub enum Frequency {
@@ -30,20 +54,27 @@ pub struct MinervaTrainer {
 }
 
 impl MinervaTrainer {
-    /// Creates a new memory trainer that will use the given emc table.
-    pub fn new(table: &'static [u8; 49280]) -> Self {
-        MinervaTrainer {
-            tables: transform_table(table),
-            cfg: unsafe { mem::zeroed() },
-        }
+    /// Creates a new memory trainer that will use the table
+    /// that corresponds to the sdram id.
+    ///
+    /// Returns `None` if the sdram_id is invalid.
+    pub fn new(sdram_id: u32) -> Option<Self> {
+        let tables = table_for_sdram(sdram_id)?;
+
+        let mut cfg = unsafe { mem::zeroed::<raw::mtc_config_t>() };
+        cfg.sdram_id = sdram_id;
+
+        Some(MinervaTrainer {
+            tables: transform_table(tables),
+            cfg,
+        })
     }
 
     /// Initializes this `MinervaTrainer`.
     ///
     /// This method **has** to be called before any operation can be done.
-    pub unsafe fn init(&mut self, sdram_id: u32) {
+    pub unsafe fn init(&mut self) {
         self.cfg.mtc_table = self.tables.as_ptr() as *mut _;
-        self.cfg.sdram_id = sdram_id;
 
         let ram_index = (0..10)
             .find(|idx| read_clk_src_emc() == self.tables[*idx].clk_src_emc)

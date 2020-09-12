@@ -22,9 +22,11 @@ fn main() {
         .header("src/minerva_tc/mtc/mtc.h")
         .header("src/minerva_tc/mtc/mtc_mc_emc_regs.h")
         .whitelist_type("mtc_config_t")
+        .whitelist_type("train_mode_t")
         .whitelist_function("minerva_main")
         .whitelist_var("CLOCK_BASE")
         .whitelist_var("CLK_RST_CONTROLLER_CLK_SOURCE_EMC")
+        .newtype_enum("train_mode_t")
         .generate()
         .expect("failed to generate rust bindings");
 

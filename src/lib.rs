@@ -25,9 +25,7 @@ impl MinervaTrainer {
     /// Initializes this `MinervaTrainer`.
     ///
     /// This method **has** to be called before any operation can be done.
-    pub fn init(&mut self) {
-        todo!()
-    }
+    pub fn init(&mut self) {}
 }
 
 fn read_clk_src_emc() -> u32 {
@@ -41,7 +39,6 @@ fn read_clk_src_emc() -> u32 {
 fn transform_table(table: &'static [u8; 49280]) -> &'static [raw::emc_table_t; 10] {
     use core::convert::TryInto;
 
-    debug_assert_eq!(4928, mem::size_of::<raw::emc_table_t>());
     // SAFETY:
     //
     // The size of `raw::emc_table_t` is equal to the length of the given table

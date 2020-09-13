@@ -64,22 +64,25 @@ impl MinervaTrainer {
     /// Returns `None` if the SDRAM ID is invalid.
     pub fn new(sdram_id: u32) -> Option<Self> {
         let profile = dram_profile::get_by_sdram_id(sdram_id)?;
+        let tables = transform_table(profile);
 
         let mut cfg = unsafe { mem::zeroed::<raw::mtc_config_t>() };
         cfg.sdram_id = sdram_id;
 
-        Some(MinervaTrainer {
-            tables: transform_table(profile),
-            cfg,
-        })
+        cfg.mtc_table = tables.as_ptr() as *mut _;
+        cfg.table_entries = 10;
+
+        cfg.emc_2X_clk_src_is_pllmb = false as i32;
+        cfg.fsp_for_src_freq = false as i32;
+        cfg.train_ram_patterns = true as i32;
+
+        Some(MinervaTrainer { tables, cfg })
     }
 
     /// Initializes this DRAM trainer.
     ///
     /// This method **has** to be called in advance before any DRAM training can be done.
     pub fn init(&mut self) {
-        self.cfg.mtc_table = self.tables.as_ptr() as *mut _;
-
         let ram_index = (0..10)
             .find(|idx| read_clk_src_emc() == self.tables[*idx].clk_src_emc)
             .unwrap_or(0);
@@ -88,8 +91,10 @@ impl MinervaTrainer {
         self.cfg.rate_to = Frequency::Freq204.into();
         self.cfg.train_mode = raw::train_mode_t::OP_TRAIN.0;
         unsafe { raw::minerva_main(&mut self.cfg) };
+
         self.cfg.rate_to = Frequency::Freq800.into();
         unsafe { raw::minerva_main(&mut self.cfg) };
+
         self.cfg.rate_to = Frequency::Freq1600.into();
         unsafe { raw::minerva_main(&mut self.cfg) };
 
@@ -201,12 +206,25 @@ pub mod dram_profile {
     );
 
     pub fn get_by_sdram_id(id: u32) -> Option<&'static [u8; 49280]> {
+        //switch (mtc_cfg->sdram_id)
+        //{
+        //case DRAM_4GB_HYNIX_H9HCNNNBPUMLHR_NLN:
+        //memcpy(mtc_cfg->mtc_table, nx_abca2_2_10NoCfgVersion_V9_8_7_V1_6, EMC_TABLE_SIZE_R7);
+        //break;
+        //case DRAM_4GB_SAMSUNG_K4F6E304HB_MGCH:
+        //case DRAM_4GB_MICRON_MT53B512M32D2NP_062_WT:
+        //case DRAM_4GB_COPPER_SAMSUNG:
+        //case DRAM_6GB_SAMSUNG_K4FHE3D4HM_MFCH:
+        //default:
+        //memcpy(mtc_cfg->mtc_table, nx_abca2_0_3_10NoCfgVersion_V9_8_7_V1_6, EMC_TABLE_SIZE_R7);
+        //break;
+        //}
         match id {
-            DRAM_4GB_SAMSUNG_K4F6E304HB_MGCH => Some(SDRAM0_NX_ABCA2_0_3),
             DRAM_4GB_HYNIX_H9HCNNNBPUMLHR_NLN => Some(SDRAM1_NX_ABCA2_2_0),
-            DRAM_4GB_MICRON_MT53B512M32D2NP_062_WT => Some(SDRAM0_NX_ABCA2_0_3),
-            DRAM_4GB_COPPER_SAMSUNG => Some(SDRAM0_NX_ABCA2_0_3),
-            DRAM_6GB_SAMSUNG_K4FHE3D4HM_MFCH => Some(SDRAM0_NX_ABCA2_0_3),
+            DRAM_4GB_SAMSUNG_K4F6E304HB_MGCH
+            | DRAM_4GB_MICRON_MT53B512M32D2NP_062_WT
+            | DRAM_4GB_COPPER_SAMSUNG
+            | DRAM_6GB_SAMSUNG_K4FHE3D4HM_MFCH => Some(SDRAM0_NX_ABCA2_0_3),
             _ => None,
         }
     }

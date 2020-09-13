@@ -66,6 +66,7 @@ impl MinervaTrainer {
         let profile = dram_profile::get_by_sdram_id(sdram_id)?;
         let tables = transform_table(profile);
 
+        // SAFETY: `raw::mtc_config_t` only contains numbers, and raw pointers.
         let mut cfg = unsafe { mem::zeroed::<raw::mtc_config_t>() };
         cfg.sdram_id = sdram_id;
 
@@ -206,19 +207,6 @@ pub mod dram_profile {
     );
 
     pub fn get_by_sdram_id(id: u32) -> Option<&'static [u8; 49280]> {
-        //switch (mtc_cfg->sdram_id)
-        //{
-        //case DRAM_4GB_HYNIX_H9HCNNNBPUMLHR_NLN:
-        //memcpy(mtc_cfg->mtc_table, nx_abca2_2_10NoCfgVersion_V9_8_7_V1_6, EMC_TABLE_SIZE_R7);
-        //break;
-        //case DRAM_4GB_SAMSUNG_K4F6E304HB_MGCH:
-        //case DRAM_4GB_MICRON_MT53B512M32D2NP_062_WT:
-        //case DRAM_4GB_COPPER_SAMSUNG:
-        //case DRAM_6GB_SAMSUNG_K4FHE3D4HM_MFCH:
-        //default:
-        //memcpy(mtc_cfg->mtc_table, nx_abca2_0_3_10NoCfgVersion_V9_8_7_V1_6, EMC_TABLE_SIZE_R7);
-        //break;
-        //}
         match id {
             DRAM_4GB_HYNIX_H9HCNNNBPUMLHR_NLN => Some(SDRAM1_NX_ABCA2_2_0),
             DRAM_4GB_SAMSUNG_K4F6E304HB_MGCH
